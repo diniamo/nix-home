@@ -1,10 +1,9 @@
 packages: {lib, pkgs, config, ...}: let
-  inherit (lib.options) mkOption literalExpression;
+  inherit (lib.options) mkEnableOption mkOption literalExpression;
   inherit (lib.modules) mkIf;
   inherit (lib.types) path attrsOf submodule bool nullOr str lines;
   inherit (lib.attrsets) mapAttrsToList filterAttrs;
-  inherit (lib.path.subpath) components;
-  inherit (lib.lists) takeEnd optional;
+  inherit (lib.lists) optional;
   inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep;
 
   inherit (pkgs) writeText writeScript;
@@ -14,13 +13,10 @@ packages: {lib, pkgs, config, ...}: let
   cfg = config.home;
   user = config.users.users.${cfg.user};
 
-  pathToName = path: let
-    directoryAndName = takeEnd 2 (components path);
-  in concatStringsSep "-" directoryAndName;
   fileToEntry = link: file: let
     fullPath = "${cfg.directory}/${link}";
     onChangeScript =
-      if file.onChange == ""
+      if file.onChange == null
       then ""
       else writeScript "${file.source.name}-on-change" file.onChange;
   in "${fullPath}\t${file.source}\t${onChangeScript}";
@@ -32,8 +28,9 @@ packages: {lib, pkgs, config, ...}: let
 in {
   options = {
     home = {
+      enable = mkEnableOption "nix-home";
       user = mkOption {
-        type = nullOr str;
+        type = str;
         description = ''
           The user to link files for.
           If null, nix-home will be disabled.
@@ -41,7 +38,7 @@ in {
         '';
       };
       directory = mkOption {
-        type = nullOr path;
+        type = path;
         default = config.users.users.${cfg.user}.home;
         defaultText = literalExpression "config.users.users.\${config.home.user}";
         description = ''
@@ -53,29 +50,38 @@ in {
       };
 
       files = mkOption {
-        type = attrsOf (submodule ({name, config, ...}: {
+        type = attrsOf (submodule ({config, name, ...}: {
           options = {
             source = mkOption {
-              type = nullOr path;
-              default = writeText (pathToName name) config.text;
-              defaultText = literalExpression "writeText (pathToName \"<name>\") home.files.<name>.text";
+              type = path;
+              default = writeText config.name config.text;
+              defaultText = literalExpression "writeText home.files.<name>.name home.files.<name>.text";
               description = ''
                 The source of the file.
-                If {option}`home.file.<name>.text` is not null, this is set to a generated file filled with it.
               '';
             };
 
+            name = mkOption {
+              type = str;
+              default = abort "config.home.files.\"${name}\".text set without config.home.files.\"${name}\".name";
+              description = ''
+                The name of the generated store path.
+                This is only used if {option}`home.files.<name>.text` is set.
+              '';
+            };
             text = mkOption {
               type = nullOr str;
+              default = null;
               description = ''
                 The text of the file.
-                If this is not null, {option}`home.file.<name>.source` is set to a generated file filled with this.
+                If set, {option}`home.files.<name>.name` must be set as well.
+                If set, {option}`home.files.<name>.source` is set to a generated file filled with this.
               '';
             };
 
             onChange = mkOption {
-              type = lines;
-              default = "";
+              type = nullOr lines;
+              default = null;
               description = "Shell commands to run when the file changes between generations.";
             };
           };
@@ -89,7 +95,7 @@ in {
     };
   };
 
-  config = mkIf (cfg.user != null && user.enable) {
+  config = mkIf (cfg.enable && user.enable) {
     warnings = optional (!(cfg.directory == user.home -> user.createHome)) ''
       It looks like the target directory matches your home directory, but createHome is false.
       If the directory does not exist at activation, it will be created with 755 permissions,

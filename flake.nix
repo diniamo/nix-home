@@ -41,8 +41,12 @@
           services.getty.autologinUser = "alice";
 
           home = {
+            enable = true;
             user = "alice";
-            files.".config/test".text = "test";
+            files.".config/test" = {
+              name = "config-test";
+              text = "test";
+            };
           };
         };
         
