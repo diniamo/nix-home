@@ -12,6 +12,7 @@ packages: {lib, pkgs, config, ...}: let
   inherit (packages.${pkgs.system}) linker;
 
   cfg = config.home;
+  user = config.users.users.${cfg.user};
 
   pathToName = path: let
     directoryAndName = takeEnd 2 (components path);
@@ -88,10 +89,8 @@ in {
     };
   };
 
-  config = mkIf (cfg.user != null) {
-    warnings = let
-      user = config.users.users.${cfg.user};
-    in optional (!(cfg.directory == user.home -> user.createHome)) ''
+  config = mkIf (cfg.user != null && user.enable) {
+    warnings = optional (!(cfg.directory == user.home -> user.createHome)) ''
       It looks like the target directory matches your home directory, but createHome is false.
       If the directory does not exist at activation, it will be created with 755 permissions,
       which is a security risk.
