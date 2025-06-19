@@ -1,0 +1,12 @@
+* Nix-home
+
+A bare-bones, single-user home file linker for NixOS.
+
+Why? Home-manager has too many shortcomings.
+
+* Usage
+
+1. Import the default NixOS module of the flake
+2. Set ~home.user~ to the same value you use to set up ~users.users~
+3. Link files using ~home.files.<path>~
+   - Right now, the supported attributes are: ~source~, ~text~, ~onChange~
