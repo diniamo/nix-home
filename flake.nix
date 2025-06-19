@@ -22,7 +22,13 @@
       linker = pkgs.callPackage ./linker/package.nix {};
     });
     
-    nixosModules.default = import ./modules/base.nix self.packages;
+    nixosModules = let
+      base = import ./modules/base.nix self.packages;
+    in {
+      default = base;
+      base = base;
+      alias = ./modules/alias.nix;
+    };
 
     checks = eachSystem (pkgs: {
       default = pkgs.testers.runNixOSTest {
