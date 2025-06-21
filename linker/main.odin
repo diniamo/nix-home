@@ -71,22 +71,36 @@ run :: proc() -> (code: int) {
 		return 1
 	}
 
+	path_generations := os.args[1]
+	path_new := filepath.clean(os.args[2])
+	
 	ok: bool
+	err: os.Error
 
 	number_current: uint = 0
  	manifest_current: Manifest
 	exists_current := false
 
-	path_generations := os.args[1]
 	path_link := filepath.join({path_generations, link_name})
-	path_current, err := os.read_link(path_link, context.allocator)
-	logf("path_link: %s, path_current: %s, err: %s", path_link, path_current, err)
+	path_current: string
+	path_current, err = os.read_link(path_link, context.allocator)
 	if err == nil {
 		name_current := filepath.base(path_current)
 		number_current, ok = parse_generation(name_current)
 		if !ok {
 			logf("Current generation points to invalid name: %s -> %s", path_link, name_current)
 			return 1
+		}
+
+		path_current, err = os.read_link(path_current, context.allocator)
+		if err != nil {
+			logf("Failed to readlink current manifest: %s", os.error_string(err))
+			return 1
+		}
+
+		if path_current == path_new {
+			log("Manifest unchanged")
+			return 0
 		}
 
 		manifest_current, ok = read_manifest(path_current)
@@ -97,13 +111,12 @@ run :: proc() -> (code: int) {
 
 		exists_current = true
 	} else if err != os.General_Error.Not_Exist {
-		log("Failed to readlink current manifest")
+		logf("Failed to readlink current manifest: %s", os.error_string(err))
 		return 1
 	}
 
 	defer if exists_current do delete(manifest_current)
 
-	path_new := os.args[2]
 	manifest_new: Manifest
 	manifest_new, ok = read_manifest(path_new)
 	if !ok {
