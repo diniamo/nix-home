@@ -96,7 +96,7 @@ in {
   };
 
   config = mkIf (cfg.enable && user.enable) {
-    warnings = optional (!(cfg.directory == user.home -> user.createHome)) ''
+    warnings = optional (!user.createHome && cfg.directory == user.home) ''
       It looks like the target directory matches your home directory, but createHome is false.
       If the directory does not exist at activation, it will be created with 755 permissions,
       which is a security risk.
