@@ -63,7 +63,7 @@ in {
 
             name = mkOption {
               type = str;
-              default = abort "config.home.files.\"${name}\".text set without config.home.files.\"${name}\".name";
+              default = abort "config.home.files.\"${name}\".name must be set to use config.home.files.\"${name}\".text";
               description = ''
                 The name of the generated store path.
                 This is only used if {option}`home.files.<name>.text` is set.
