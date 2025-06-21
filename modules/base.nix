@@ -4,6 +4,7 @@ packages: { lib, pkgs, config, ... }: let
   inherit (lib.types) path attrsOf submodule bool nullOr str lines;
   inherit (lib.attrsets) mapAttrsToList filterAttrs;
   inherit (lib.lists) optional;
+  inherit (lib.strings) optionalString;
   inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep;
 
   inherit (pkgs) writeText writeScript;
@@ -13,16 +14,13 @@ packages: { lib, pkgs, config, ... }: let
   cfg = config.home;
   user = config.users.users.${cfg.user};
 
-  fileToEntry = link: file: let
-    fullPath = "${cfg.directory}/${link}";
-    onChangeScript =
-      if file.onChange == null
-      then ""
-      else writeScript "${file.source.name}-on-change" file.onChange;
-  in "${fullPath}\t${file.source}\t${onChangeScript}";
+  fileToEntry = relative: file: let
+    link = "${cfg.directory}/${relative}";
+    target = optionalString (file.source != null) file.source;
+    onChangeScript = optionalString (file.onChange != null) (writeScript "${file.source.name}-on-change" file.onChange);
+  in "${link}\t${target}\t${onChangeScript}";
 
-  filesFiltered = filterAttrs (_: file: file.source != null) cfg.files;
-  manifestEntries = mapAttrsToList fileToEntry filesFiltered;
+  manifestEntries = mapAttrsToList fileToEntry cfg.files;
   manifest = concatStringsSep "\n" manifestEntries;
   manifestFile = writeText "home-manifest" manifest;
 in {
@@ -53,11 +51,15 @@ in {
         type = attrsOf (submodule ({config, name, ...}: {
           options = {
             source = mkOption {
-              type = path;
-              default = writeText config.name config.text;
+              type = nullOr path;
+              default =
+                if config.text != null then writeText config.name config.text
+                else null;
               defaultText = literalExpression "writeText home.files.<name>.name home.files.<name>.text";
               description = ''
                 The source of the file.
+                If {option}`home.files.<name>.text` is set, this will be set to a generated file, filled with that option.
+                If null (the default), the linker will only perform garbage collection on the file.
               '';
             };
 

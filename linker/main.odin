@@ -126,6 +126,8 @@ run :: proc() -> (code: int) {
 	defer delete(manifest_new)
 
 	for link, entry in manifest_new {
+		if entry.target == "" do continue
+
 		info, err := os.stat_do_not_follow_links(link, context.allocator)
 		if err == nil {
 			if info.type == os.File_Type.Symlink {
@@ -185,7 +187,7 @@ run :: proc() -> (code: int) {
 			if link not_in manifest_new {
 				err := os.remove(link)
 				if err != nil && err != os.General_Error.Not_Exist {
-					logf("Failed to remove dangling link (%s): %s", link, os.error_string(err))
+					logf("Failed to remove dangling file (%s): %s", link, os.error_string(err))
 					code = 1
 					continue
 				}
