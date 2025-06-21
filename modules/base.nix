@@ -1,11 +1,11 @@
 packages: { lib, pkgs, config, ... }: let
   inherit (lib.options) mkEnableOption mkOption literalExpression;
   inherit (lib.modules) mkIf;
-  inherit (lib.types) path attrsOf submodule bool nullOr str lines;
+  inherit (lib.types) path attrsOf submodule bool nullOr str lines package either;
   inherit (lib.attrsets) mapAttrsToList filterAttrs;
   inherit (lib.lists) optional;
   inherit (lib.strings) optionalString;
-  inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep;
+  inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep baseNameOf;
 
   inherit (pkgs) writeText writeScript;
 
@@ -17,7 +17,7 @@ packages: { lib, pkgs, config, ... }: let
   fileToEntry = relative: file: let
     link = "${cfg.directory}/${relative}";
     target = optionalString (file.source != null) file.source;
-    onChangeScript = optionalString (file.onChange != null) (writeScript "${file.source.name}-on-change" file.onChange);
+    onChangeScript = optionalString (file.onChange != null) (writeScript "${file.name}-on-change.sh" file.onChange);
   in "${link}\t${target}\t${onChangeScript}";
 
   manifestEntries = mapAttrsToList fileToEntry cfg.files;
@@ -56,29 +56,34 @@ in {
       };
 
       files = mkOption {
-        type = attrsOf (submodule ({config, name, ...}: {
+        type = attrsOf (submodule ({ config, name, ... }: {
           options = {
+            name = mkOption {
+              type = str;
+              default =
+                if config.source != null && config.source ? name then config.source.name
+                else baseNameOf name;
+              description = ''
+                The name of the generated store path.
+                Defaults to the name attribute of {option}`home.files.<name>.source` or the base of the attribute name.
+                This is only used when {option}`home.files.<name>.text` is set,
+                or when {option}`home.files.<name>.source` is a path (and therefore doesn't have a `name` attribute).
+              '';
+            };
+            
             source = mkOption {
-              type = nullOr path;
+              type = nullOr (either package path);
               default =
                 if config.text != null then writeText config.name config.text
                 else null;
-              defaultText = literalExpression "writeText home.files.<name>.name home.files.<name>.text";
               description = ''
                 The source of the file.
-                If {option}`home.files.<name>.text` is set, this will be set to a generated file, filled with that option.
+                If this is a path, {option}`home.files.<name>.name` must be set as well.
+                If {option}`home.files.<name>.text` is set, this will be set to a generated file filled with that option.
                 If null (the default), the linker will only perform garbage collection on the file.
               '';
             };
 
-            name = mkOption {
-              type = str;
-              default = abort "config.home.files.\"${name}\".name must be set to use config.home.files.\"${name}\".text";
-              description = ''
-                The name of the generated store path.
-                This is only used if {option}`home.files.<name>.text` is set.
-              '';
-            };
             text = mkOption {
               type = nullOr str;
               default = null;
