@@ -43,6 +43,7 @@
           home = {
             enable = true;
             user = "alice";
+            
             files.".config/test" = {
               name = "config-test";
               text = "test";
@@ -52,10 +53,8 @@
         
         testScript = ''
           machine.start()
-
-          machine.wait_until_tty_matches('1', 'alice@machine')
-
-          machine.wait_for_file('/home/alice/.config/test')
+          machine.wait_for_unit('default.target')
+          
           machine.succeed('test "$(cat /home/alice/.config/test)" = "test"')
         '';
       };

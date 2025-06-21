@@ -1,4 +1,4 @@
-packages: {lib, pkgs, config, ...}: let
+packages: { lib, pkgs, config, ... }: let
   inherit (lib.options) mkEnableOption mkOption literalExpression;
   inherit (lib.modules) mkIf;
   inherit (lib.types) path attrsOf submodule bool nullOr str lines;
@@ -102,11 +102,16 @@ in {
       which is a security risk.
     '';
 
-    system.userActivationScripts.home.text = ''
-      if [[ "$USER" == "${cfg.user}" ]]; then
-        echo "Linking home files"
-        ${linker} ${cfg.directory}/.local/state/nix/profiles ${manifestFile}
-      fi
-    '';
+    systemd.services.nix-home = {
+      description = "home file linking";
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = cfg.user;
+        ExecStart = "${linker} ${cfg.directory}/.local/state/nix/profiles ${manifestFile}";
+      };
+
+      requiredBy = [ "default.target" "sysinit-reactivation.target" ];
+    };
   };
 }
