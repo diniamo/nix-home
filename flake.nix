@@ -43,6 +43,7 @@
           home = {
             enable = true;
             user = "alice";
+            linkOnBoot = true;
             
             files.".config/test" = {
               name = "config-test";

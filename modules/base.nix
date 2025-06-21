@@ -46,6 +46,14 @@ in {
           in `system.userActivationScripts`.
         '';
       };
+      linkOnBoot = mkOption {
+        type = bool;
+        default = false;
+        description = ''
+          Whether to run the linker on boot.
+          This is only useful, if you set the boot entry without switching to the configuration, or if you do impermenance.
+        '';
+      };
 
       files = mkOption {
         type = attrsOf (submodule ({config, name, ...}: {
@@ -113,7 +121,8 @@ in {
         ExecStart = "${linker} ${cfg.directory}/.local/state/nix/profiles ${manifestFile}";
       };
 
-      requiredBy = [ "default.target" "sysinit-reactivation.target" ];
+      requiredBy = [ "sysinit-reactivation.target" ]
+        ++ optional cfg.linkOnBoot "default.target";
     };
   };
 }

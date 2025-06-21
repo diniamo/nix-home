@@ -98,11 +98,6 @@ run :: proc() -> (code: int) {
 			return 1
 		}
 
-		if path_current == path_new {
-			log("Manifest unchanged")
-			return 0
-		}
-
 		manifest_current, ok = read_manifest(path_current)
 		if !ok {
 			log("Failed to read current manifest")
@@ -180,6 +175,10 @@ run :: proc() -> (code: int) {
 		}
 
 		logf("%s -> %s", link, entry.target)
+	}
+
+	if path_new == path_current {
+		return code;
 	}
 
 	if exists_current {
