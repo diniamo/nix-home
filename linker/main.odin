@@ -78,12 +78,14 @@ run :: proc() -> (code: int) {
 	exists_current := false
 
 	path_generations := os.args[1]
-	path_current := filepath.join({path_generations, link_name})
-	info_current, err := os.stat(path_current, context.allocator)
+	path_link := filepath.join({path_generations, link_name})
+	path_current, err := os.read_link(path_link, context.allocator)
+	logf("path_link: %s, path_current: %s, err: %s", path_link, path_current, err)
 	if err == nil {
-		number_current, ok = parse_generation(info_current.name)
+		name_current := filepath.base(path_current)
+		number_current, ok = parse_generation(name_current)
 		if !ok {
-			logf("Current generation points to invalid name: %s -> %s", path_current, info_current.name)
+			logf("Current generation points to invalid name: %s -> %s", path_link, name_current)
 			return 1
 		}
 
@@ -92,8 +94,10 @@ run :: proc() -> (code: int) {
 			log("Failed to read current manifest")
 			return 1
 		}
+
+		exists_current = true
 	} else if err != os.General_Error.Not_Exist {
-		log("Failed to stat current manifest")
+		log("Failed to readlink current manifest")
 		return 1
 	}
 
@@ -177,9 +181,9 @@ run :: proc() -> (code: int) {
 			}
 		}
 
-		err := os.remove(path_current)
+		err := os.remove(path_link)
 		if err != nil {
-			logf("Failed to remove current generation link (%s): %s, " + partial_activation, path_current, os.error_string(err))
+			logf("Failed to remove current generation link (%s): %s, " + partial_activation, path_link, os.error_string(err))
 			return 1
 		}
 	} else {
@@ -192,17 +196,17 @@ run :: proc() -> (code: int) {
 		}
 	}
 
-	link_filename := fmt.tprintf(link_prefix + "%d" + link_suffix, number_current + 1)
-	link_path := filepath.join({path_generations, link_filename})
-	err = os.symlink(path_new, link_path)
+	filename_new := fmt.tprintf(link_prefix + "%d" + link_suffix, number_current + 1)
+	path_link_new := filepath.join({path_generations, filename_new})
+	err = os.symlink(path_new, path_link_new)
 	if err != nil {
-		logf("Failed to symlink new generation (%s -> %s): %s", link_path, path_new, os.error_string(err))
+		logf("Failed to symlink new generation (%s -> %s): %s", path_link_new, path_new, os.error_string(err))
 		return 1
 	}
 	
-	err = os.symlink(link_path, path_current)
+	err = os.symlink(path_link_new, path_link)
 	if err != nil {
-		logf("Failed to symlink current generation (%s -> %s): %s", path_current, link_path, os.error_string(err))
+		logf("Failed to symlink current generation (%s -> %s): %s", path_link, path_link_new, os.error_string(err))
 		return 1
 	}
 

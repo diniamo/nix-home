@@ -6,14 +6,14 @@
 
   buildInputs = [ odin ];
 
-  dontBuild = true;
-  installPhase = ''
+  buildPhase = ''
     runHook preBuild
     
     odin build $src -file -o:speed -out:$out
     
     runHook postBuild
   '';
+  dontInstall = true;
 
   meta = {
     description = "Linker for nix-home";
