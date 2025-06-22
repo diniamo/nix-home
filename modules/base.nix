@@ -5,7 +5,7 @@ packages: { lib, pkgs, config, ... }: let
   inherit (lib.attrsets) mapAttrsToList filterAttrs;
   inherit (lib.lists) optional;
   inherit (lib.strings) optionalString;
-  inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep baseNameOf;
+  inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep isAttrs;
 
   inherit (pkgs) writeText writeShellScript;
 
@@ -61,8 +61,8 @@ in {
             name = mkOption {
               type = str;
               default =
-                if config.source != null && config.source ? name then config.source.name
-                else baseNameOf name;
+                if isAttrs config.source && config.source ? name then config.source.name
+                else abort "you must set home.files.\"${name}\" manuallly";
               description = ''
                 The name of the generated store path.
                 Defaults to the name attribute of {option}`home.files.<name>.source` or the base of the attribute name.
