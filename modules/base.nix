@@ -7,7 +7,7 @@ packages: { lib, pkgs, config, ... }: let
   inherit (lib.strings) optionalString;
   inherit (builtins) replaceStrings mapAttrs length elemAt concatStringsSep baseNameOf;
 
-  inherit (pkgs) writeText writeScript;
+  inherit (pkgs) writeText writeShellScript;
 
   inherit (packages.${pkgs.system}) linker;
 
@@ -17,7 +17,7 @@ packages: { lib, pkgs, config, ... }: let
   fileToEntry = relative: file: let
     link = "${cfg.directory}/${relative}";
     target = optionalString (file.source != null) file.source;
-    onChangeScript = optionalString (file.onChange != null) (writeScript "${file.name}-on-change.sh" file.onChange);
+    onChangeScript = optionalString (file.onChange != null) (writeShellScript "${file.name}-on-change.sh" file.onChange);
   in "${link}\t${target}\t${onChangeScript}";
 
   manifestEntries = mapAttrsToList fileToEntry cfg.files;
