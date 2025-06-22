@@ -160,15 +160,21 @@ run :: proc() -> (code: int) {
 			entry_current: Entry
 			entry_current, ok = manifest_current[link]
 			if ok && entry.target != entry_current.target {
-				process, err := os.process_start({command = {entry.on_change}})
+				logf("Running onChange script (%s) for %s", entry.on_change, link)
+
+				process, err := os.process_start({
+					command = {entry.on_change},
+					stdout = os.stdout,
+					stderr = os.stderr
+				})
 				if err == nil {
 					_, err = os.process_wait(process)
 					if err != nil {
-						logf("OnChange script failed for %s: %s", link, os.error_string(err))
+						logf("Failed to run onChange script for %s: %s", link, os.error_string(err))
 						code = 1
 					}
 				} else {
-					logf("Failed to run onChange script for %s: %s", link, os.error_string(err))
+					logf("Failed to start onChange script for %s: %s", link, os.error_string(err))
 					code = 1
 				}
 			}
