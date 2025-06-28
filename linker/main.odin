@@ -58,7 +58,7 @@ read_manifest :: proc(path: string) -> (manifest: Manifest, ok: bool) {
 	return
 }
 
-parse_generation :: proc(name: string) -> (uint, bool) {
+parse_profile :: proc(name: string) -> (uint, bool) {
 	number := name[len(link_prefix):len(name) - len(link_suffix)]
 	return strconv.parse_uint(number)
 }
@@ -71,7 +71,7 @@ run :: proc() -> (code: int) {
 		return 1
 	}
 
-	path_generations := os.args[1]
+	path_profiles := os.args[1]
 	path_new := filepath.clean(os.args[2])
 	
 	ok: bool
@@ -82,16 +82,16 @@ run :: proc() -> (code: int) {
 	exists_current := false
 	keep_profile := false
 
-	path_link := filepath.join({path_generations, link_name})
+	path_link := filepath.join({path_profiles, link_name})
 	path_current: string
 	path_current, err = os.read_link(path_link, context.allocator)
 	if err == nil {
 		defer delete(path_current)
 
 		name_current := filepath.base(path_current)
-		number_current, ok = parse_generation(name_current)
+		number_current, ok = parse_profile(name_current)
 		if !ok {
-			logf("Current generation points to invalid name: %s -> %s", path_link, name_current)
+			logf("Current profile points to invalid name: %s -> %s", path_link, name_current)
 			return 1
 		}
 
@@ -211,30 +211,30 @@ run :: proc() -> (code: int) {
 
 		err := os.remove(path_link)
 		if err != nil {
-			logf("Failed to remove current generation link (%s): %s, " + partial_activation, path_link, os.error_string(err))
+			logf("Failed to remove current profile link (%s): %s, " + partial_activation, path_link, os.error_string(err))
 			return 1
 		}
 	} else {
 		log("Warning: no current manifest, skipping cleanup")
 		
-		err = os.mkdir_all(path_generations)
+		err = os.mkdir_all(path_profiles)
 		if err != nil && err != os.General_Error.Exist {
-			logf("Failed to create parent directories (%s) for generation: %s", path_generations, os.error_string(err))
+			logf("Failed to create parent directories (%s) for profile: %s", path_profiles, os.error_string(err))
 			return 1
 		}
 	}
 
 	filename_new := fmt.tprintf(link_prefix + "%d" + link_suffix, number_current + 1)
-	path_link_new := filepath.join({path_generations, filename_new})
+	path_link_new := filepath.join({path_profiles, filename_new})
 	err = os.symlink(path_new, path_link_new)
 	if err != nil {
-		logf("Failed to symlink new generation (%s -> %s): %s", path_link_new, path_new, os.error_string(err))
+		logf("Failed to symlink new profile (%s -> %s): %s", path_link_new, path_new, os.error_string(err))
 		return 1
 	}
 	
 	err = os.symlink(path_link_new, path_link)
 	if err != nil {
-		logf("Failed to symlink current generation (%s -> %s): %s", path_link, path_link_new, os.error_string(err))
+		logf("Failed to symlink current profile (%s -> %s): %s", path_link, path_link_new, os.error_string(err))
 		return 1
 	}
 
