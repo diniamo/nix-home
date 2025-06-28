@@ -163,6 +163,8 @@ run :: proc() -> (code: int) {
 			code = 1
 			continue
 		}
+		
+		logf("%s -> %s", link, entry.target)
 
 		if entry.on_change != "" && exists_current {
 			entry_current: Entry
@@ -187,8 +189,6 @@ run :: proc() -> (code: int) {
 				}
 			}
 		}
-
-		logf("%s -> %s", link, entry.target)
 	}
 
 	if keep_profile {
