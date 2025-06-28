@@ -23,6 +23,9 @@ packages: { lib, pkgs, config, ... }: let
   manifestEntries = mapAttrsToList fileToEntry cfg.files;
   manifest = concatStringsSep "\n" manifestEntries;
   manifestFile = writeText "home-manifest" manifest;
+
+  targets = [ "sysinit-reactivation.target" ]
+    ++ optional cfg.linkOnBoot "default.target";
 in {
   options = {
     home = {
@@ -131,8 +134,8 @@ in {
         ExecStart = "${linker} ${cfg.directory}/.local/state/nix/profiles ${manifestFile}";
       };
 
-      requiredBy = [ "sysinit-reactivation.target" ]
-        ++ optional cfg.linkOnBoot "default.target";
+      after = targets;
+      requiredBy = targets;
     };
   };
 }
