@@ -122,6 +122,7 @@ in {
 
       serviceConfig = {
         Type = "oneshot";
+        SyslogIdentifier = "nix-home";
         User = cfg.user;
         ExecStart = "${linker} ${cfg.directory}/.local/state/nix/profiles ${manifestFile}";
       };
