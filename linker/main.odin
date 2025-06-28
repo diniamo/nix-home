@@ -67,7 +67,7 @@ run :: proc() -> (code: int) {
 	partial_activation :: "this will likely result in a partial activation. Fix the cause and reactivate."
 
 	if len(os.args) < 3 {
-		log("Usage: <current generation path> linker <new manifest store path>")
+		log("Usage: linker <profiles directory> <new manifest store path>")
 		return 1
 	}
 
