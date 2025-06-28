@@ -80,11 +80,14 @@ run :: proc() -> (code: int) {
 	number_current: uint = 0
  	manifest_current: Manifest
 	exists_current := false
+	keep_profile := false
 
 	path_link := filepath.join({path_generations, link_name})
 	path_current: string
 	path_current, err = os.read_link(path_link, context.allocator)
 	if err == nil {
+		defer delete(path_current)
+
 		name_current := filepath.base(path_current)
 		number_current, ok = parse_generation(name_current)
 		if !ok {
@@ -92,19 +95,22 @@ run :: proc() -> (code: int) {
 			return 1
 		}
 
-		path_current, err = os.read_link(path_current, context.allocator)
+		path_current_real: string
+		path_current_real, err = os.read_link(path_current, context.allocator)
 		if err != nil {
 			logf("Failed to readlink current manifest: %s", os.error_string(err))
 			return 1
 		}
+		defer delete(path_current_real)
 
-		manifest_current, ok = read_manifest(path_current)
+		manifest_current, ok = read_manifest(path_current_real)
 		if !ok {
 			log("Failed to read current manifest")
 			return 1
 		}
 
 		exists_current = true
+		keep_profile = path_current_real == path_new
 	} else if err != os.General_Error.Not_Exist {
 		logf("Failed to readlink current manifest: %s", os.error_string(err))
 		return 1
@@ -125,6 +131,8 @@ run :: proc() -> (code: int) {
 
 		info, err := os.stat_do_not_follow_links(link, context.allocator)
 		if err == nil {
+			defer os.file_info_delete(info, context.allocator)
+
 			if info.type == os.File_Type.Symlink {
 				err = os.remove(link)
 				if err != nil {
@@ -183,7 +191,7 @@ run :: proc() -> (code: int) {
 		logf("%s -> %s", link, entry.target)
 	}
 
-	if path_new == path_current {
+	if keep_profile {
 		return code;
 	}
 
