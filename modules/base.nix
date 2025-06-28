@@ -97,7 +97,11 @@ in {
             onChange = mkOption {
               type = nullOr lines;
               default = null;
-              description = "Shell commands to run when the file changes between generations.";
+              description = ''
+                Shell commands to run when the file changes between generations.
+                The activation service is system-level, but the `User` property is set,
+                so environment variables like `USER` and `UID` are available.
+              '';
             };
           };
         }));
